@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Defizit & Etappen Club</title>
+  
+  <meta name="theme-color" content="#071913">
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            serif: ['"Playfair Display"', 'serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            luxury: {
+              darkest: '#05110D',
+              forest: '#09211A',
+              card: '#0D2D23',
+              border: '#1E4A3B',
+              borderSubtle: '#153C30',
+              gold: '#D4AF37',
+              goldLight: '#F3E5AB',
+              goldMuted: 'rgba(212, 175, 55, 0.15)',
+              cream: '#F7F5EE',
+              emerald: '#10B981',
+              rose: '#E06A6A',
+            }
+          },
+          boxShadow: {
+            'gold-glow': '0 0 25px -4px rgba(212, 175, 55, 0.25)',
+            'card-luxury': '0 12px 30px -8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(212, 175, 55, 0.15)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      -webkit-tap-highlight-color: transparent;
+      background-color: #05110D;
+      color: #F7F5EE;
+    }
+    .gold-gradient-text {
+      background: linear-gradient(135deg, #FFF1CA 0%, #D4AF37 55%, #AA820A 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .gold-btn-gradient {
+      background: linear-gradient(135deg, #E6C86E 0%, #D4AF37 50%, #B89223 100%);
+    }
+    .card-glass {
+      background: linear-gradient(165deg, rgba(13, 45, 35, 0.95) 0%, rgba(8, 26, 20, 0.98) 100%);
+      backdrop-filter: blur(12px);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-luxury-gold selection:text-luxury-darkest pb-10">
+
+  <!-- TOP HEADER -->
+  <header class="sticky top-0 z-40 bg-luxury-darkest/90 backdrop-blur-md border-b border-luxury-border/60 px-4 py-3">
+    <div class="max-w-md mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-2xl gold-btn-gradient flex items-center justify-center font-serif text-luxury-darkest font-extrabold text-lg shadow-gold-glow">
+          🌸
+        </div>
+        <div>
+          <h1 class="text-xs uppercase tracking-widest text-luxury-goldLight font-bold">Defizit & Etappen Club</h1>
+          <p class="text-[11px] text-luxury-cream/60 font-mono" id="headerStageSubtitle">Etappe 1 • Ziel: -5 kg</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="toggleSettingsModal(true)" class="w-8 h-8 rounded-full border border-luxury-border text-luxury-cream/70 flex items-center justify-center hover:bg-luxury-card transition">
+          ⚙️
+        </button>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="max-w-md mx-auto grid grid-cols-2 gap-1.5 bg-luxury-forest/80 p-1 rounded-2xl border border-luxury-border/70 mt-3">
+      <button id="tabBtnToday" onclick="switchTab('today')" class="py-2 text-xs font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 bg-luxury-card text-luxury-goldLight shadow-card-luxury border border-luxury-gold/30">
+        <span>📅</span> Aktuelle Etappe
+      </button>
+      <button id="tabBtnDiary" onclick="switchTab('diary')" class="py-2 text-xs font-medium rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-luxury-cream/60 hover:text-luxury-cream">
+        <span>📖</span> Tagebuch
+        <span id="diaryCountPill" class="text-[10px] px-1.5 py-0.5 bg-luxury-darkest text-luxury-gold rounded-full font-mono">0</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-md mx-auto w-full px-4 pt-4 space-y-4">
+
+    <!-- VIEW 1: TODAY & CURRENT STAGE -->
+    <div id="viewToday" class="space-y-4">
+      
+      <!-- HERO STAGE COUNTDOWN CARD -->
+      <div class="relative overflow-hidden rounded-[26px] card-glass border border-luxury-gold/30 p-6 shadow-card-luxury">
+        <div class="flex items-center justify-between">
+          <span id="stageBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-luxury-goldMuted text-luxury-goldLight border border-luxury-gold/30">
+            <span class="w-1.5 h-1.5 rounded-full bg-luxury-gold animate-pulse"></span>
+            Etappe 1 (-5 kg)
+          </span>
+          <span id="stagePercentBadge" class="text-xs font-mono font-bold text-luxury-goldLight">0.0% erreicht</span>
+        </div>
+
+        <div class="text-center my-4">
+          <div class="text-[11px] uppercase tracking-widest text-luxury-cream/60 font-semibold">Noch in dieser Etappe</div>
+          <div class="flex items-baseline justify-center gap-1.5 mt-1">
+            <span id="remainingKcalDisplay" class="text-5xl font-black font-mono tracking-tight gold-gradient-text drop-shadow">35.000</span>
+            <span class="text-lg font-serif italic text-luxury-goldLight">kcal</span>
+          </div>
+          <div class="text-[10px] font-mono text-luxury-cream/40 mt-1" id="grandTotalSubtitle">
+            Gesamtziel: 280.000 kcal verbleibend
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="space-y-2">
+          <div class="w-full bg-luxury-darkest/90 rounded-full h-3 p-0.5 border border-luxury-border">
+            <div id="countdownProgressBar" class="h-full gold-btn-gradient rounded-full transition-all duration-700 ease-out shadow-gold-glow" style="width: 0%"></div>
+          </div>
+          <div class="flex justify-between items-center text-[11px] font-mono text-luxury-cream/70">
+            <span>Erspart (Etappe): <strong id="stageDeficitAchieved" class="text-luxury-goldLight font-bold">0 kcal</strong></span>
+            <span>Gesamtfett: <strong id="totalFatLossDisplay" class="text-emerald-400 font-bold">0.00 kg</strong></span>
+          </div>
+        </div>
+
+        <!-- Mini Stats Row: Protein & Zucker & Kalorien -->
+        <div class="grid grid-cols-3 gap-1.5 mt-4 pt-3 border-t border-luxury-border/60">
+          <div class="bg-luxury-forest/80 rounded-xl p-2 border border-luxury-borderSubtle text-center">
+            <div class="text-[9px] uppercase tracking-wider text-luxury-cream/50">Protein</div>
+            <div class="text-xs font-mono font-bold text-luxury-goldLight mt-0.5" id="heroProteinProgress">0 / 120g</div>
+          </div>
+          <div class="bg-luxury-forest/80 rounded-xl p-2 border border-luxury-borderSubtle text-center" id="sugarHeroBox">
+            <div class="text-[9px] uppercase tracking-wider text-luxury-cream/50">Zucker</div>
+            <div class="text-xs font-mono font-bold mt-0.5" id="heroSugarProgress">0.0 / 37.5g</div>
+          </div>
+          <div class="bg-luxury-forest/80 rounded-xl p-2 border border-luxury-borderSubtle text-center">
+            <div class="text-[9px] uppercase tracking-wider text-luxury-cream/50">Gegessen</div>
+            <div class="text-xs font-mono font-bold text-luxury-cream mt-0.5" id="heroIntakeProgress">0 kcal</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MEAL LOGGER CARD -->
+      <div class="rounded-[22px] card-glass border border-luxury-border p-4 shadow-card-luxury space-y-3">
+        <div class="flex items-center justify-between border-b border-luxury-border/60 pb-2">
+          <h2 class="text-xs uppercase tracking-wider font-bold text-luxury-goldLight flex items-center gap-2">
+            <span>✨</span> Mahlzeit eintragen
+          </h2>
+          <span class="text-[10px] font-mono text-luxury-cream/50" id="currentDateIndicator"></span>
+        </div>
+
+        <div class="space-y-2">
+          <input id="mealNameInput" type="text" placeholder="Bezeichnung (z. B. Salat mit Hähnchen)" class="w-full bg-luxury-darkest border border-luxury-border rounded-xl px-3.5 py-2.5 text-xs text-luxury-cream placeholder-luxury-cream/30 focus:outline-none focus:border-luxury-gold transition">
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="text-[10px] text-luxury-cream/60 pl-1 block mb-0.5">Kalorien</label>
+              <input id="mealKcalInput" type="number" placeholder="kcal" class="w-full bg-luxury-darkest border border-luxury-border rounded-xl px-2.5 py-2 text-xs font-mono text-luxury-goldLight placeholder-luxury-cream/30 focus:outline-none">
+            </div>
+            <div>
+              <label class="text-[10px] text-luxury-cream/60 pl-1 block mb-0.5">Protein (g)</label>
+              <input id="mealProteinInput" type="number" step="0.1" placeholder="g" class="w-full bg-luxury-darkest border border-luxury-border rounded-xl px-2.5 py-2 text-xs font-mono text-emerald-400 placeholder-luxury-cream/30 focus:outline-none">
+            </div>
+            <div>
+              <label class="text-[10px] text-luxury-cream/60 pl-1 block mb-0.5">Zucker (g)</label>
+              <input id="mealSugarInput" type="number" step="0.1" placeholder="g" class="w-full bg-luxury-darkest border border-luxury-border rounded-xl px-2.5 py-2 text-xs font-mono text-rose-300 placeholder-luxury-cream/30 focus:outline-none">
+            </div>
+          </div>
+          <button onclick="addMealItem()" class="w-full gold-btn-gradient text-luxury-darkest font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-gold-glow active:scale-[0.99]">
+            + Mahlzeit hinzufügen
+          </button>
+        </div>
+
+        <!-- Meals List for Today -->
+        <div id="mealsListContainer" class="space-y-1.5 pt-2 max-h-48 overflow-y-auto pr-0.5"></div>
+
+        <!-- Google Fit Commit Section -->
+        <div class="pt-3 border-t border-luxury-border/60 space-y-2.5">
+          <label class="text-xs font-semibold text-luxury-goldLight flex items-center gap-1.5">
+            <span>🔥</span> Google Fit / Tagesverbrauch
+          </label>
+          <div class="flex gap-2">
+            <input id="googleFitBurnedInput" type="number" placeholder="z. B. 2400 kcal" class="flex-1 bg-luxury-darkest border border-luxury-border rounded-xl px-3 py-2.5 text-xs font-mono font-bold text-luxury-gold placeholder-luxury-cream/30 focus:outline-none">
+            <button onclick="commitDailyResult()" class="px-4 py-2.5 bg-luxury-forest border border-luxury-gold/50 hover:bg-luxury-gold hover:text-luxury-darkest text-luxury-goldLight font-bold rounded-xl text-xs whitespace-nowrap transition-all shadow-sm">
+              Tag abrechnen
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- VIEW 2: DIARY -->
+    <div id="viewDiary" class="space-y-4 hidden">
+      <div class="rounded-[22px] card-glass border border-luxury-border p-4 shadow-card-luxury flex items-center justify-between">
+        <div>
+          <h2 class="text-xs uppercase tracking-wider font-bold text-luxury-goldLight flex items-center gap-2">
+            <span>📖</span> Tagebuch
+          </h2>
+          <p class="text-[11px] text-luxury-cream/50">Alle Tage & Etappenverlauf</p>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button onclick="toggleImportModal(true)" class="px-2.5 py-1.5 rounded-xl border border-luxury-gold/40 bg-luxury-goldMuted text-luxury-goldLight text-xs font-semibold">
+            📥 Import
+          </button>
+          <button onclick="exportDiaryData()" class="px-2.5 py-1.5 rounded-xl border border-luxury-border bg-luxury-forest text-luxury-cream/80 text-xs font-semibold">
+            💾 Export
+          </button>
+        </div>
+      </div>
+
+      <div class="space-y-2.5" id="diaryFeedContainer"></div>
+    </div>
+
+  </main>
+
+  <!-- POP-UP MODAL: ZUCKER-WARNUNG -->
+  <div id="sugarWarningModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="card-glass border border-luxury-rose/60 rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-card-luxury text-center">
+      <div class="w-14 h-14 mx-auto rounded-full bg-luxury-rose/20 border border-luxury-rose/40 flex items-center justify-center text-2xl">
+        ⚠️
+      </div>
+      <div class="space-y-1">
+        <h3 class="text-sm font-bold text-luxury-rose uppercase tracking-wider">Zuckerlimit überschritten</h3>
+        <p class="text-xs text-luxury-cream/80" id="sugarWarningText">
+          Du hast dein tägliches Limit von 37,5 g Zucker heute überschritten.
+        </p>
+      </div>
+      <button onclick="closeSugarWarningModal()" class="w-full bg-luxury-rose hover:bg-luxury-rose/90 text-white font-bold py-2.5 rounded-xl text-xs transition">
+        Verstanden
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: IMPORT JSON -->
+  <div id="importModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="card-glass border border-luxury-gold/40 rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-card-luxury">
+      <div class="flex items-center justify-between pb-2 border-b border-luxury-border">
+        <h3 class="text-sm font-bold text-luxury-goldLight">📥 Chat-Daten importieren</h3>
+        <button onclick="toggleImportModal(false)" class="text-luxury-cream/60 hover:text-white p-1">✕</button>
+      </div>
+      <textarea id="importJsonTextarea" rows="6" placeholder='{"todayMeals": [...]}' class="w-full bg-luxury-darkest border border-luxury-border rounded-xl p-3 text-xs font-mono text-luxury-goldLight placeholder-luxury-cream/20 focus:outline-none"></textarea>
+      <div class="flex gap-2">
+        <button onclick="applyImportData()" class="flex-1 gold-btn-gradient text-luxury-darkest font-bold py-2 rounded-xl text-xs">
+          Import anwenden
+        </button>
+        <button onclick="toggleImportModal(false)" class="px-3 bg-luxury-forest border border-luxury-border text-luxury-cream/70 rounded-xl text-xs">
+          Abbrechen
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SETTINGS -->
+  <div id="settingsModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="card-glass border border-luxury-border rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-card-luxury">
+      <div class="flex items-center justify-between pb-2 border-b border-luxury-border">
+        <h3 class="text-sm font-bold text-luxury-goldLight">⚙️ Einstellungen</h3>
+        <button onclick="toggleSettingsModal(false)" class="text-luxury-cream/60 hover:text-white p-1">✕</button>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs text-luxury-cream/70 block mb-1">Gesamtziel (kcal, z. B. 280000 = 40 kg)</label>
+          <input id="grandTargetInput" type="number" class="w-full bg-luxury-darkest border border-luxury-border rounded-xl px-3 py-2 text-xs font-mono text-white">
+        </div>
+        <div>
+          <label class="text-xs text-luxury-cream/70 block mb-1">Etappengröße (kcal, z. B. 35000 = 5 kg)</label>
+          <input id="stageTargetInput" type="number" class="w-full bg-luxury-darkest border border-luxury-border rounded-xl px-3 py-2 text-xs font-mono text-white">
+        </div>
+        <div>
+          <label class="text-xs text-luxury-cream/70 block mb-1">Tägliches Proteinziel (g)</label>
+          <input id="proteinGoalInput" type="number" class="w-full bg-luxury-darkest border border-luxury-border rounded-xl px-3 py-2 text-xs font-mono text-emerald-400">
+        </div>
+        <div>
+          <label class="text-xs text-luxury-cream/70 block mb-1">Tägliches Zuckerlimit (g)</label>
+          <input id="sugarLimitInput" type="number" step="0.5" class="w-full bg-luxury-darkest border border-luxury-border rounded-xl px-3 py-2 text-xs font-mono text-rose-300">
+        </div>
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button onclick="saveSettings()" class="flex-1 gold-btn-gradient text-luxury-darkest font-bold py-2 rounded-xl text-xs">
+          Speichern
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toastMessage" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-luxury-forest border border-luxury-gold/50 text-luxury-goldLight text-xs font-medium rounded-full shadow-2xl opacity-0 pointer-events-none transition-all duration-300">
+    Hinweis
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'kcal_countdown_stefanie_v1';
+    const STAGE_KCAL = 35000;
+    const GRAND_KCAL = 280000;
+
+    let sugarWarningShownToday = false;
+
+    function getTodayString() {
+      return new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    const defaultState = {
+      grandTarget: GRAND_KCAL,
+      stageTarget: STAGE_KCAL,
+      proteinGoal: 120,
+      sugarLimit: 37.5,
+      todayDate: getTodayString(),
+      todayMeals: [],
+      history: []
+    };
+
+    let appState = loadState();
+
+    function loadState() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const state = { ...defaultState, ...JSON.parse(saved) };
+          if (state.todayDate !== getTodayString()) {
+            sugarWarningShownToday = false;
+            state.todayDate = getTodayString();
+          }
+          return state;
+        }
+      } catch (e) {
+        console.warn(e);
+      }
+      return defaultState;
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+      } catch (e) {
+        console.error(e);
+      }
+      renderApp();
+    }
+
+    function triggerFireworks() {
+      confetti({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ['#D4AF37', '#F3E5AB', '#10B981', '#ffffff']
+      });
+      setTimeout(() => {
+        confetti({
+          particleCount: 80,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 }
+        });
+        confetti({
+          particleCount: 80,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 }
+        });
+      }, 300);
+    }
+
+    function checkSugarLimit(currentSugar) {
+      const limit = appState.sugarLimit || 37.5;
+      if (parseFloat(currentSugar) > limit && !sugarWarningShownToday) {
+        document.getElementById('sugarWarningText').innerHTML = 
+          `Du hast heute bereits <strong class="text-white">${currentSugar}g Zucker</strong> zu dir genommen (Limit: ${limit}g).`;
+        document.getElementById('sugarWarningModal').classList.remove('hidden');
+        sugarWarningShownToday = true;
+      }
+    }
+
+    function closeSugarWarningModal() {
+      document.getElementById('sugarWarningModal').classList.add('hidden');
+    }
+
+    function switchTab(tab) {
+      document.getElementById('viewToday').classList.toggle('hidden', tab !== 'today');
+      document.getElementById('viewDiary').classList.toggle('hidden', tab !== 'diary');
+      renderApp();
+    }
+
+    function renderApp() {
+      const totalDeficit = (appState.history || []).reduce((sum, d) => sum + (d.netDeficit || 0), 0);
+      const stageSize = appState.stageTarget || 35000;
+      
+      const currentStageIndex = Math.floor(totalDeficit / stageSize);
+      const stageDeficit = totalDeficit % stageSize;
+      const stageRemaining = Math.max(0, stageSize - stageDeficit);
+      const stagePercent = Math.min(100, (stageDeficit / stageSize) * 100).toFixed(1);
+
+      const grandRemaining = Math.max(0, (appState.grandTarget || GRAND_KCAL) - totalDeficit);
+      const totalFatLost = (totalDeficit / 7000).toFixed(2);
+
+      // Hero Render
+      document.getElementById('headerStageSubtitle').textContent = `Etappe ${currentStageIndex + 1} • Ziel: -5 kg`;
+      document.getElementById('stageBadge').textContent = `Etappe ${currentStageIndex + 1} (-5 kg)`;
+      document.getElementById('stagePercentBadge').textContent = `${stagePercent}% erreicht`;
+      document.getElementById('remainingKcalDisplay').textContent = stageRemaining.toLocaleString('de-DE');
+      document.getElementById('grandTotalSubtitle').textContent = `Gesamtziel: noch ${grandRemaining.toLocaleString('de-DE')} kcal (-${(grandRemaining/7000).toFixed(1)} kg)`;
+      document.getElementById('countdownProgressBar').style.width = `${stagePercent}%`;
+      document.getElementById('stageDeficitAchieved').textContent = `${stageDeficit.toLocaleString('de-DE')} kcal`;
+      document.getElementById('totalFatLossDisplay').textContent = `${totalFatLost} kg`;
+
+      // Today Stats
+      const todayKcal = Math.round((appState.todayMeals || []).reduce((s, m) => s + (Number(m.kcal) || 0), 0));
+      const todayProtein = (appState.todayMeals || []).reduce((s, m) => s + (Number(m.protein) || 0), 0).toFixed(1);
+      const todaySugar = (appState.todayMeals || []).reduce((s, m) => s + (Number(m.sugar) || 0), 0).toFixed(1);
+
+      document.getElementById('heroProteinProgress').textContent = `${todayProtein} / ${appState.proteinGoal}g`;
+      document.getElementById('heroSugarProgress').textContent = `${todaySugar} / ${appState.sugarLimit}g`;
+      document.getElementById('heroIntakeProgress').textContent = `${todayKcal} kcal`;
+      document.getElementById('currentDateIndicator').textContent = getTodayString();
+
+      // Zucker-Warnung prüfen
+      checkSugarLimit(todaySugar);
+      const sugarLimit = appState.sugarLimit || 37.5;
+      const isSugarExceeded = parseFloat(todaySugar) > sugarLimit;
+      const sugarBox = document.getElementById('sugarHeroBox');
+      if (isSugarExceeded) {
+        sugarBox.className = 'bg-rose-950/80 rounded-xl p-2 border border-rose-600/60 text-center text-rose-300';
+      } else {
+        sugarBox.className = 'bg-luxury-forest/80 rounded-xl p-2 border border-luxury-borderSubtle text-center text-luxury-goldLight';
+      }
+
+      // Mahlzeitenliste
+      const mealsContainer = document.getElementById('mealsListContainer');
+      mealsContainer.innerHTML = '';
+      if (!appState.todayMeals || appState.todayMeals.length === 0) {
+        mealsContainer.innerHTML = '<div class="text-[11px] text-luxury-cream/40 py-1 italic">Heute noch keine Speisen eingetragen.</div>';
+      } else {
+        appState.todayMeals.forEach(m => {
+          const div = document.createElement('div');
+          div.className = 'flex items-center justify-between bg-luxury-forest/90 px-3 py-2 rounded-xl border border-luxury-borderSubtle text-xs';
+          div.innerHTML = `
+            <div>
+              <span class="font-medium text-luxury-cream">${escapeHtml(m.name)}</span>
+              <span class="text-[10px] text-luxury-cream/40 ml-1">(${m.time || ''})</span>
+            </div>
+            <div class="flex items-center gap-2 font-mono text-[11px]">
+              <span class="text-luxury-goldLight">${m.kcal} kcal</span>
+              <span class="text-emerald-400 font-bold">${m.protein || 0}g P</span>
+              <span class="text-rose-300">${m.sugar || 0}g Z</span>
+              <button onclick="removeMealItem('${m.id}')" class="text-luxury-cream/40 hover:text-luxury-rose p-0.5 ml-1">✕</button>
+            </div>
+          `;
+          mealsContainer.appendChild(div);
+        });
+      }
+
+      renderDiary();
+    }
+
+    function renderDiary() {
+      document.getElementById('diaryCountPill').textContent = appState.history.length;
+      const feed = document.getElementById('diaryFeedContainer');
+      feed.innerHTML = '';
+
+      if (appState.history.length === 0) {
+        feed.innerHTML = `
+          <div class="rounded-2xl card-glass border border-luxury-border p-6 text-center space-y-2">
+            <span class="text-2xl block">🌸</span>
+            <div class="text-xs font-bold text-luxury-goldLight">Dein Tagebuch ist noch leer</div>
+            <p class="text-[11px] text-luxury-cream/50">Rechne deinen ersten Tag ab, um die Reise zu starten.</p>
+          </div>
+        `;
+        return;
+      }
+
+      [...appState.history].reverse().forEach((entry) => {
+        const isDeficit = entry.netDeficit >= 0;
+        const card = document.createElement('div');
+        card.className = 'rounded-2xl card-glass border border-luxury-border p-3.5 space-y-2';
+        card.innerHTML = `
+          <div class="flex justify-between items-center text-xs">
+            <span class="font-bold text-luxury-cream">${entry.date}</span>
+            <span class="font-mono font-bold px-2 py-0.5 rounded-full ${isDeficit ? 'bg-emerald-950 text-emerald-400 border border-emerald-800/40' : 'bg-rose-950 text-rose-400'}">
+              ${isDeficit ? '-' + entry.netDeficit.toLocaleString('de-DE') : '+' + Math.abs(entry.netDeficit)} kcal
+            </span>
+          </div>
+          <div class="grid grid-cols-4 gap-1 text-[10px] font-mono text-center">
+            <div class="p-1.5 rounded-lg bg-luxury-forest">Verbr.: ${entry.burned}</div>
+            <div class="p-1.5 rounded-lg bg-luxury-forest">Geg.: ${entry.intake}</div>
+            <div class="p-1.5 rounded-lg bg-luxury-forest text-emerald-400">${entry.protein || 0}g P</div>
+            <div class="p-1.5 rounded-lg bg-luxury-forest text-rose-300">${entry.sugar || 0}g Z</div>
+          </div>
+        `;
+        feed.appendChild(card);
+      });
+    }
+
+    function addMealItem() {
+      const name = document.getElementById('mealNameInput').value.trim();
+      const kcal = parseInt(document.getElementById('mealKcalInput').value);
+      const protein = parseFloat(document.getElementById('mealProteinInput').value) || 0;
+      const sugar = parseFloat(document.getElementById('mealSugarInput').value) || 0;
+
+      if (!name || isNaN(kcal)) return showToast('Name und Kalorien angeben');
+
+      appState.todayMeals.push({
+        id: 'm-' + Date.now(),
+        name,
+        kcal,
+        protein,
+        sugar,
+        time: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+      });
+
+      document.getElementById('mealNameInput').value = '';
+      document.getElementById('mealKcalInput').value = '';
+      document.getElementById('mealProteinInput').value = '';
+      document.getElementById('mealSugarInput').value = '';
+
+      saveState();
+      showToast(`„${name}“ hinzugefügt`);
+    }
+
+    function removeMealItem(id) {
+      appState.todayMeals = appState.todayMeals.filter(m => m.id !== id);
+      saveState();
+    }
+
+    function commitDailyResult() {
+      const burned = parseInt(document.getElementById('googleFitBurnedInput').value);
+      if (isNaN(burned) || burned <= 0) return showToast('Bitte Verbrauch eingeben');
+
+      const intake = Math.round((appState.todayMeals || []).reduce((s, m) => s + (Number(m.kcal) || 0), 0));
+      const protein = parseFloat((appState.todayMeals || []).reduce((s, m) => s + (Number(m.protein) || 0), 0).toFixed(1));
+      const sugar = parseFloat((appState.todayMeals || []).reduce((s, m) => s + (Number(m.sugar) || 0), 0).toFixed(1));
+      const netDeficit = burned - intake;
+
+      const prevTotal = appState.history.reduce((s, d) => s + (d.netDeficit || 0), 0);
+      const newTotal = prevTotal + netDeficit;
+
+      const prevStage = Math.floor(prevTotal / (appState.stageTarget || 35000));
+      const newStage = Math.floor(newTotal / (appState.stageTarget || 35000));
+      if (newStage > prevStage) {
+        triggerFireworks();
+        alert('🎉 Herzlichen Glückwunsch! Du hast eine weitere 5-kg-Etappe (35.000 kcal) erfolgreich geknackt!');
+      }
+
+      appState.history.push({
+        id: 'day-' + Date.now(),
+        date: getTodayString(),
+        burned,
+        intake,
+        netDeficit,
+        protein,
+        sugar,
+        meals: [...appState.todayMeals]
+      });
+
+      appState.todayMeals = [];
+      sugarWarningShownToday = false;
+      document.getElementById('googleFitBurnedInput').value = '';
+
+      saveState();
+      showToast('Tag erfolgreich verbucht!');
+    }
+
+    function applyImportData() {
+      const raw = document.getElementById('importJsonTextarea').value.trim();
+      if (!raw) return;
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed.todayMeals)) appState.todayMeals = parsed.todayMeals;
+        if (Array.isArray(parsed.history)) appState.history = parsed.history;
+        saveState();
+        toggleImportModal(false);
+        showToast('Erfolgreich importiert!');
+      } catch (e) {
+        showToast('Ungültiges Format');
+      }
+    }
+
+    function exportDiaryData() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
+      const a = document.createElement('a');
+      a.href = dataStr;
+      a.download = `stefanie_countdown_backup_${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    function toggleImportModal(s) { document.getElementById('importModal').classList.toggle('hidden', !s); }
+    function toggleSettingsModal(s) { 
+      if (s) {
+        document.getElementById('grandTargetInput').value = appState.grandTarget;
+        document.getElementById('stageTargetInput').value = appState.stageTarget;
+        document.getElementById('proteinGoalInput').value = appState.proteinGoal;
+        document.getElementById('sugarLimitInput').value = appState.sugarLimit;
+      }
+      document.getElementById('settingsModal').classList.toggle('hidden', !s); 
+    }
+
+    function saveSettings() {
+      appState.grandTarget = parseInt(document.getElementById('grandTargetInput').value) || GRAND_KCAL;
+      appState.stageTarget = parseInt(document.getElementById('stageTargetInput').value) || STAGE_KCAL;
+      appState.proteinGoal = parseInt(document.getElementById('proteinGoalInput').value) || 120;
+      appState.sugarLimit = parseFloat(document.getElementById('sugarLimitInput').value) || 37.5;
+      saveState();
+      toggleSettingsModal(false);
+      showToast('Einstellungen gespeichert');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toastMessage');
+      t.textContent = msg;
+      t.classList.remove('opacity-0');
+      t.classList.add('opacity-100');
+      setTimeout(() => {
+        t.classList.remove('opacity-100');
+        t.classList.add('opacity-0');
+      }, 2400);
+    }
+
+    function escapeHtml(t) {
+      const d = document.createElement('div');
+      d.textContent = t;
+      return d.innerHTML;
+    }
+
+    window.onload = renderApp;
+  </script>
+</body>
+</html>
